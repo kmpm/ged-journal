@@ -1,0 +1,12 @@
+{ "timestamp":"2024-12-29T23:21:53Z", "event":"ShipLocker", "Items":[ 
+
+ ], "Components":[ 
+
+ ], "Consumables":[ 
+{ "Name":"healthpack", "Name_Localised":"Medkit", "OwnerID":0, "Count":1 }, 
+{ "Name":"energycell", "Name_Localised":"Energy Cell", "OwnerID":0, "Count":1 }, 
+{ "Name":"amm_grenade_emp", "Name_Localised":"Shield Disruptor", "OwnerID":0, "Count":1 }, 
+{ "Name":"amm_grenade_shield", "Name_Localised":"Shield Projector", "OwnerID":0, "Count":1 }
+ ], "Data":[ 
+{ "Name":"nocdata_tutorial", "Name_Localised":"NOC Data", "OwnerID":0, "Count":1 }
+ ] }
