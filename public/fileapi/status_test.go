@@ -1,4 +1,4 @@
-package files
+package fileapi
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_getStatusFromPath(t *testing.T) {
+func Test_GetStatusFromPath(t *testing.T) {
 	type args struct {
 		logPath string
 	}
@@ -16,12 +16,12 @@ func Test_getStatusFromPath(t *testing.T) {
 		want    *Status
 		wantErr bool
 	}{
-		{"Test 1", args{"testdata/set1/"}, &Status{Event: "Status", Timestamp: "2024-12-29T23:22:17Z"}, false},
+		{"Test 1", args{"../../testdata/set1/"}, &Status{Event: "Status", Timestamp: "2024-12-29T23:22:17Z"}, false},
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getStatusFromPath(tt.args.logPath)
+			got, err := GetStatusFromPath(tt.args.logPath)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getStatusFromPath() error = %v, wantErr %v", err, tt.wantErr)
 				return

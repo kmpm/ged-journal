@@ -1,4 +1,4 @@
-package files
+package fileapi
 
 import (
 	"encoding/json"
@@ -39,12 +39,12 @@ type Status struct {
 //	C:/Users/<Username>/Saved Games/Frontier Developments/Elite Dangerous
 //
 // If that path is not suitable, use GetStatusFromPath.
-func (m *Module) GetStatus() (*Status, error) {
-	return getStatusFromPath(m.logPath)
+func (a *Api) GetStatus() (*Status, error) {
+	return GetStatusFromPath(a.logPath)
 }
 
-// getStatusFromPath reads the current player and ship status from Status.json at the specified log path.
-func getStatusFromPath(logPath string) (*Status, error) {
+// GetStatusFromPath reads the current player and ship status from Status.json at the specified log path.
+func GetStatusFromPath(logPath string) (*Status, error) {
 	statusFilePath := filepath.FromSlash(logPath + "/Status.json")
 	retries := 5
 	for retries > 0 {
