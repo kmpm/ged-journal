@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"compress/zlib"
 	"errors"
+	"io"
 	"log/slog"
 
 	"github.com/nats-io/jsm.go/natscontext"
@@ -33,4 +36,29 @@ func connect(uri, context string) (nc *nats.Conn, err error) {
 	})
 
 	return nc, nil
+}
+
+// Deflate decompresses a zlib compressed byte slice
+func deflate(raw []byte) ([]byte, error) {
+
+	r, err := zlib.NewReader(bytes.NewBuffer(raw))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	p := make([]byte, 1024)
+	out := new(bytes.Buffer)
+	n, err := r.Read(p)
+	for n > 0 {
+		out.Write(p[:n])
+		if err != nil {
+			break
+		}
+		n, err = r.Read(p)
+	}
+	if err != io.EOF {
+		return nil, err
+	}
+	return out.Bytes(), nil
+
 }

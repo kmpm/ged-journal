@@ -20,6 +20,7 @@ type SubSaveCmd struct {
 	Subject     string `help:"Subject to save" type:"string" default:">"`
 	Nats        string `help:"Nats server address" default:"nats://localhost:4222"`
 	NatsContext string `help:"Nats context" default:""`
+	Deflate     bool   `short:"d" help:"Deflate message" default:"false"`
 }
 
 func (cmd *SubSaveCmd) Run(ctx *clicontext) error {
@@ -33,7 +34,15 @@ func (cmd *SubSaveCmd) Run(ctx *clicontext) error {
 		slog.Debug("Received message", "subject", m.Subject, "epoc", epoc)
 		filename := fmt.Sprintf("%s_%d.json", strings.ReplaceAll(m.Subject, ".", "-"), epoc)
 		filename = filepath.FromSlash(cmd.Path + "/" + filename)
-		err := os.WriteFile(filename, m.Data, 0644)
+		data := m.Data
+		if cmd.Deflate {
+			data, err = deflate(m.Data)
+			if err != nil {
+				slog.Error("Failed to deflate message", "error", err)
+				return
+			}
+		}
+		err := os.WriteFile(filename, data, 0644)
 		if err != nil {
 			slog.Error("Failed to write file", "file", filename, "error", err)
 		}
