@@ -26,6 +26,7 @@ type API struct {
 	currentJournal string
 	nc             *nats.Conn
 	Status         *Status
+	prefix         string
 }
 
 func New(logPath string, nc *nats.Conn) (*API, error) {
@@ -33,6 +34,7 @@ func New(logPath string, nc *nats.Conn) (*API, error) {
 	a := &API{
 		logPath: logPath,
 		nc:      nc,
+		prefix:  "ged.",
 	}
 	err := a.Refresh()
 	if err != nil {
@@ -99,7 +101,7 @@ func (a *API) watchWorker() {
 				slog.Warn("failed to marshal status file", "error", err)
 				continue
 			}
-			a.nc.Publish("global.status", data)
+			a.nc.Publish(a.prefix+"global.status", data)
 
 		default:
 			if journalFilePattern.MatchString(event.Name) {
@@ -141,7 +143,7 @@ func (a *API) publishJSON(filename string, subject string) error {
 	if err != nil {
 		return err
 	}
-	err = a.nc.Publish(subject, data)
+	err = a.nc.Publish(a.prefix+subject, data)
 
 	return err
 }
@@ -204,7 +206,7 @@ func (a *API) scanJournal(ctx context.Context, filename string) error {
 					continue
 				}
 
-				err = a.nc.Publish(strings.ToLower("journal.event."+obj.Event), []byte(line))
+				err = a.nc.Publish(a.prefix+strings.ToLower("journal.event."+obj.Event), []byte(line))
 				if err != nil {
 					slog.Warn("failed to publish journal entry", "line", line, "error", err)
 				}
