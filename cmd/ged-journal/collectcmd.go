@@ -6,18 +6,19 @@ import (
 	"github.com/kmpm/ged-journal/public/fileapi"
 )
 
-type RunCmd struct {
+type CollectCmd struct {
+	BasePath    string `arg:"" help:"Path to application log files" default:"${basepath}"`
 	Nats        string `help:"Nats server address" default:"nats://localhost:4222"`
 	NatsContext string `help:"Nats context" default:""`
 }
 
-func (cmd *RunCmd) Run(cc *clicontext) error {
-	slog.Info("Running file api")
+func (cmd *CollectCmd) Run(cc *clicontext) error {
+	slog.Info("Running Collect")
 	nc, err := connect(cmd.Nats, cmd.NatsContext)
 	if err != nil {
 		return err
 	}
-	a, err := fileapi.New(cc.BasePath, nc)
+	a, err := fileapi.New(cmd.BasePath, nc)
 	if err != nil {
 		return err
 	}

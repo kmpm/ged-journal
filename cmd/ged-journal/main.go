@@ -15,12 +15,12 @@ import (
 var globalLogLevel *slog.LevelVar
 
 type cli struct {
-	Loglevel  string       `help:"Set log level" default:"info" short:"l" enum:"debug,info,warn,error"`
-	Logfile   string       `help:"Log to file" short:"f"`
-	LogSource bool         `help:"Add source to log output"`
-	BasePath  string       `help:"Path to application log files" short:"p" default:"${basepath}"`
+	Loglevel  string `help:"Set log level" default:"info" short:"l" enum:"debug,info,warn,error"`
+	Logfile   string `help:"Log to file" short:"f"`
+	LogSource bool   `help:"Add source to log output"`
+
 	Metrics   string       `help:"Enable prometheus metrics on address" short:"m" default:""`
-	Run       RunCmd       `cmd:"" default:"1" help:"Run the program"`
+	Collect   CollectCmd   `cmd:"" default:"1" help:"Run the program"`
 	Ls        LsCmd        `cmd:"" help:"List files in base-path"`
 	Subscribe SubscribeCmd `cmd:"" aliases:"sub" help:"Subscribe to journal events"`
 }
@@ -28,7 +28,7 @@ type cli struct {
 type clicontext struct {
 	Username string
 	HomePath string
-	BasePath string
+	Metrics  bool
 }
 
 // configure slog logging
@@ -79,18 +79,22 @@ func main() {
 	var cli cli
 	currUser, _ := user.Current()
 	homeDir := currUser.HomeDir
+	basePath := filepath.FromSlash(homeDir + "/Saved Games/Frontier Developments/Elite Dangerous")
+
 	cc := clicontext{
 		Username: currUser.Username,
 		HomePath: homeDir,
-		BasePath: filepath.FromSlash(homeDir + "/Saved Games/Frontier Developments/Elite Dangerous"),
 	}
 
-	ctx := kong.Parse(&cli, kong.Vars{"basepath": cc.BasePath})
-	cc.BasePath = cli.BasePath
+	ctx := kong.Parse(&cli, kong.Vars{"basepath": basePath})
+
 	setupLogging(cli.Loglevel, cli.Logfile, cli.LogSource)
 
 	slog.Info("Starting ged-journal", "user", cc.Username, "basepath", cc.BasePath, "loglevel", cli.Loglevel, "logfile", cli.Logfile)
 	slog.Debug("cli", "cli", cli)
+
+	slog.Info("Starting ged-journal", "user", cc.Username, "loglevel", cli.Loglevel, "logfile", cli.Logfile, "metrics", cli.Metrics)
+
 	err := ctx.Run(&cc)
 	ctx.FatalIfErrorf(err)
 }

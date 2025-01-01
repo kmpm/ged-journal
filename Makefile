@@ -51,9 +51,9 @@ audit:
 test:
 	go test ./...
 
-.PHONY: run
-run: $(DIRS)
-	go run $(call FIXPATH,./cmd/$(CMDNAME)) run -f var/$(CMDNAME)-log.jsonl --nats $(GED_NATS)
+.PHONY: run-collect
+run-collect: $(DIRS)
+	go run $(call FIXPATH,./cmd/$(CMDNAME)) collect -f var/$(CMDNAME)-log.jsonl --nats $(GED_NATS)
 
 
 .PHONY: build
