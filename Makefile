@@ -15,6 +15,7 @@ GOARCH:=$(shell go env GOARCH)
 CMDNAME=ged-journal
 BINNAME:=$(call FIXPATH,dist/$(CMDNAME)$(GOEXE))
 
+
 DIRS = dist var
 
 help:
@@ -52,7 +53,7 @@ test:
 
 .PHONY: run
 run: $(DIRS)
-	go run $(call FIXPATH,./cmd/$(CMDNAME)) run -f var/ged-journal-log.jsonl --nats $(GED_NATS)
+	go run $(call FIXPATH,./cmd/$(CMDNAME)) run -f var/$(CMDNAME)-log.jsonl --nats $(GED_NATS)
 
 
 .PHONY: build
@@ -66,10 +67,10 @@ $(BINNAME): $(DIRS)
 release: dist-clean $(DIRS) release_$(GOOS)
 
 release_windows: $(BINNAME)
-	zip -j go-journal_win_$(GOARCH).zip  dist/*
+	zip -j $(CMDNAME)_win_$(GOARCH).zip  dist/*
 
 release_linux: $(BINNAME)
-	cd dist ; tar -czf ../go-journal_linux_$(GOARCH).tar.gz *
+	cd dist ; tar -czf ../$(CMDNAME)_linux_$(GOARCH).tar.gz *
 
 
 .PHONY: no-dirty
