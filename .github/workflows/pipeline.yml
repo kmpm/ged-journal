@@ -45,9 +45,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ged-journal_*_*.*
-
-          asset_name: mything
+          file: assets/*
           tag: ${{ github.ref }}
           overwrite: true
-          body: "This is my release text"
+          file_glob: true
