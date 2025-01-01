@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"os/user"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kong"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var globalLogLevel *slog.LevelVar
@@ -89,9 +91,19 @@ func main() {
 	ctx := kong.Parse(&cli, kong.Vars{"basepath": basePath})
 
 	setupLogging(cli.Loglevel, cli.Logfile, cli.LogSource)
-
-	slog.Info("Starting ged-journal", "user", cc.Username, "basepath", cc.BasePath, "loglevel", cli.Loglevel, "logfile", cli.Logfile)
-	slog.Debug("cli", "cli", cli)
+	if cli.Metrics != "" {
+		go func() {
+			slog.Info("metrics enabled", "address", cli.Metrics)
+			http.Handle("/metrics", promhttp.Handler())
+			err := http.ListenAndServe(cli.Metrics, nil)
+			if err != nil {
+				slog.Error("metrics server error", "error", err)
+			}
+		}()
+		cc.Metrics = true
+	} else {
+		slog.Info("metrics disabled")
+	}
 
 	slog.Info("Starting ged-journal", "user", cc.Username, "loglevel", cli.Loglevel, "logfile", cli.Logfile, "metrics", cli.Metrics)
 
