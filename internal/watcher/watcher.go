@@ -62,7 +62,7 @@ func (w *Watcher) Watch() {
 				slog.Debug("fsnotify event channel closed")
 				return
 			}
-			slog.Info("watcher event", "event_op", event.Op, "event_name", event.Name)
+			slog.Debug("watcher event", "event_op", event.Op, "event_name", event.Name)
 			if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
 				// slog.Info("file modified", "file", event.Name)
 

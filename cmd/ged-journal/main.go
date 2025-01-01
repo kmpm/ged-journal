@@ -15,12 +15,14 @@ import (
 var globalLogLevel *slog.LevelVar
 
 type cli struct {
-	Loglevel string `help:"Set log level" default:"info" short:"l" enum:"debug,info,warn,error"`
-	Logfile  string `help:"Log to file" short:"f"`
-	BasePath string `help:"Path to application log files" short:"p" default:"${basepath}"`
-	Metrics  string `help:"Enable prometheus metrics on address" short:"m" default:""`
-	Run      RunCmd `cmd:"" default:"1" help:"Run the program"`
-	Ls       LsCmd  `cmd:"" help:"List files in base-path"`
+	Loglevel  string       `help:"Set log level" default:"info" short:"l" enum:"debug,info,warn,error"`
+	Logfile   string       `help:"Log to file" short:"f"`
+	LogSource bool         `help:"Add source to log output"`
+	BasePath  string       `help:"Path to application log files" short:"p" default:"${basepath}"`
+	Metrics   string       `help:"Enable prometheus metrics on address" short:"m" default:""`
+	Run       RunCmd       `cmd:"" default:"1" help:"Run the program"`
+	Ls        LsCmd        `cmd:"" help:"List files in base-path"`
+	Subscribe SubscribeCmd `cmd:"" aliases:"sub" help:"Subscribe to journal events"`
 }
 
 type clicontext struct {
@@ -30,11 +32,11 @@ type clicontext struct {
 }
 
 // configure slog logging
-func setupLogging(level, logfile string) {
+func setupLogging(level, logfile string, source bool) {
 	globalLogLevel = &slog.LevelVar{}
 	opts := &slog.HandlerOptions{
 		Level:     globalLogLevel,
-		AddSource: true,
+		AddSource: source,
 	}
 	switch level {
 	case "debug":
@@ -85,7 +87,7 @@ func main() {
 
 	ctx := kong.Parse(&cli, kong.Vars{"basepath": cc.BasePath})
 	cc.BasePath = cli.BasePath
-	setupLogging(cli.Loglevel, cli.Logfile)
+	setupLogging(cli.Loglevel, cli.Logfile, cli.LogSource)
 
 	slog.Info("Starting ged-journal", "user", cc.Username, "basepath", cc.BasePath, "loglevel", cli.Loglevel, "logfile", cli.Logfile)
 	slog.Debug("cli", "cli", cli)

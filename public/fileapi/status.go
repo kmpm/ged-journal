@@ -39,7 +39,7 @@ type Status struct {
 //	C:/Users/<Username>/Saved Games/Frontier Developments/Elite Dangerous
 //
 // If that path is not suitable, use GetStatusFromPath.
-func (a *Api) GetStatus() (*Status, error) {
+func (a *API) GetStatus() (*Status, error) {
 	return GetStatusFromPath(a.logPath)
 }
 
@@ -63,14 +63,14 @@ func GetStatusFromPath(logPath string) (*Status, error) {
 			continue
 		}
 
-		return getStatusFromBytes(statusBytes)
+		return GetStatusFromBytes(statusBytes)
 	}
 
 	return nil, errors.New("couldn't get status after 5 attempts")
 }
 
-// getStatusFromBytes reads the current player and ship status from the string contained in the byte array.
-func getStatusFromBytes(content []byte) (*Status, error) {
+// GetStatusFromBytes reads the current player and ship status from the string contained in the byte array.
+func GetStatusFromBytes(content []byte) (*Status, error) {
 	status := &Status{}
 	if err := json.Unmarshal(content, status); err != nil {
 		return nil, errors.New("couldn't unmarshal Status.json file: " + err.Error())

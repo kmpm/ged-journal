@@ -1,0 +1,53 @@
+name: pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+   
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
+      - name: Tidy and Audit
+        run: make tidy audit
+
+      - name: Test
+        run: make test
+
+      - name: Build binaries and compress
+        run: |
+          CGO_ENABLED=0 make no-dirty release
+          CGO_ENABLED=0 GOARCH=arm64 make no-dirty release
+          CGO_ENABLED=0 GOOS=windows make no-dirty release
+          
+
+      - name: Upload binaries to release
+        if: ${{ (github.event_name != 'pull_request') && (startsWith(github.ref, 'refs/tags/v')) }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ged-journal_*_*.*
+
+          asset_name: mything
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: "This is my release text"

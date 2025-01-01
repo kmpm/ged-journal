@@ -7,11 +7,17 @@ import (
 )
 
 type RunCmd struct {
+	Nats        string `help:"Nats server address" default:"nats://localhost:4222"`
+	NatsContext string `help:"Nats context" default:""`
 }
 
 func (cmd *RunCmd) Run(cc *clicontext) error {
 	slog.Info("Running file api")
-	a, err := fileapi.New(cc.BasePath)
+	nc, err := connect(cmd.Nats, cmd.NatsContext)
+	if err != nil {
+		return err
+	}
+	a, err := fileapi.New(cc.BasePath, nc)
 	if err != nil {
 		return err
 	}
