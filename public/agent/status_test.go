@@ -1,4 +1,4 @@
-package fileapi
+package agent
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ func Test_GetStatusFromPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetStatusFromPath(tt.args.logPath)
+			got, err := getStatusFromPath(tt.args.logPath)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getStatusFromPath() error = %v, wantErr %v", err, tt.wantErr)
 				return

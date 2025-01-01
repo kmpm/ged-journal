@@ -1,4 +1,4 @@
-package fileapi
+package collector
 
 import (
 	"bufio"
@@ -9,37 +9,32 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/kmpm/ged-journal/internal/watcher"
 	"github.com/kmpm/ged-journal/public/journal"
-	"github.com/nats-io/nats.go"
 )
 
 var journalFilePattern = regexp.MustCompile(`^Journal\.\d{4}\-\d{2}\-\d{2}T\d{6}\.\d{2}\.log$`)
 
-type API struct {
+type Publisher func(subject string, data []byte, compress bool) error
+
+type Collector struct {
 	logPath        string
 	w              *watcher.Watcher
-	mu             sync.Mutex
 	currentJournal string
-	nc             *nats.Conn
-	Status         *Status
+	pub            Publisher
 	prefix         string
 }
 
-func New(logPath string, nc *nats.Conn) (*API, error) {
+func New(logPath string, pub Publisher) (*Collector, error) {
 
-	a := &API{
+	a := &Collector{
 		logPath: logPath,
-		nc:      nc,
+		pub:     pub,
 		prefix:  "ged.",
 	}
-	err := a.Refresh()
-	if err != nil {
-		return nil, err
-	}
+
 	w, err := watcher.New(logPath)
 	if err != nil {
 		return nil, err
@@ -49,82 +44,59 @@ func New(logPath string, nc *nats.Conn) (*API, error) {
 	return a, nil
 }
 
-func (a *API) Close() error {
-	if a.w != nil {
-		a.w.Close()
+func (cr *Collector) Close() error {
+	if cr.w != nil {
+		cr.w.Close()
 	}
 	return nil
 }
 
-func (a *API) watchWorker() {
-	go a.w.Watch()
+func (cr *Collector) watchWorker() {
+	go cr.w.Watch()
 	var ctx context.Context
 	var cancel context.CancelFunc
-	var err error
-	var data []byte
-	for event := range a.w.Events {
+	for event := range cr.w.Events {
 		slog.Debug("something happened", "event", event)
 		switch event.Name {
 		case "Backpack.json":
-			a.publishJSON(event.Path, "global.backpack")
+			cr.publishJSON(event.Path, "global.backpack")
 		case "Cargo.json":
-			a.publishJSON(event.Path, "global.cargo")
+			cr.publishJSON(event.Path, "global.cargo")
 		case "Market.json":
-			a.publishJSON(event.Path, "global.market")
+			cr.publishJSON(event.Path, "global.market")
 		case "ModulesInfo.json":
-			a.publishJSON(event.Path, "global.modulesinfo")
+			cr.publishJSON(event.Path, "global.modulesinfo")
 		case "NavRoute.json":
-			a.publishJSON(event.Path, "global.navroute")
+			cr.publishJSON(event.Path, "global.navroute")
 		case "Outfitting.json":
-			a.publishJSON(event.Path, "global.outfitting")
+			cr.publishJSON(event.Path, "global.outfitting")
 		case "ShipLocker.json":
-			a.publishJSON(event.Path, "global.shiplocker")
+			cr.publishJSON(event.Path, "global.shiplocker")
 		case "Shipyard.json":
-			a.publishJSON(event.Path, "global.shipyard")
+			cr.publishJSON(event.Path, "global.shipyard")
 		case "Status.json":
-			data, err = a.readFile(event.Path)
-			if err != nil {
-				slog.Warn("failed to read status file", "error", err)
-				continue
-			}
-			if len(data) == 0 {
-				continue
-			}
-			s, err := GetStatusFromBytes(data)
-			if err != nil {
-				slog.Warn("failed to parse status file", "error", err)
-				continue
-			}
-			s.ExpandFlags()
-			data, err = json.Marshal(s)
-			if err != nil {
-				slog.Warn("failed to marshal status file", "error", err)
-				continue
-			}
-			a.nc.Publish(a.prefix+"global.status", data)
-
+			cr.publishJSON(event.Path, "global.status")
 		default:
 			if journalFilePattern.MatchString(event.Name) {
-				if a.currentJournal != event.Name {
+				if cr.currentJournal != event.Name {
 					if cancel != nil {
 						cancel()
 					}
 					ctx, cancel = context.WithCancel(context.Background())
-					a.currentJournal = event.Name
-					go a.scanJournal(ctx, event.Path)
+					cr.currentJournal = event.Name
+					go cr.scanJournal(ctx, event.Path)
 				}
 			} else {
 				slog.Warn("unknown file", "file", event.Name)
 			}
 		}
-		// a.Refresh()
 	}
 	if cancel != nil {
 		cancel()
 	}
 	slog.Debug("watcher event channel closed")
 }
-func (a *API) publishJSON(filename string, subject string) error {
+func (cr *Collector) publishJSON(filename string, subject string) error {
 	var err error
 	defer func() {
 		if err != nil {
@@ -132,7 +104,7 @@ func (a *API) publishJSON(filename string, subject string) error {
 		}
 	}()
 	var obj map[string]any
-	obj, err = a.readJSON(filename)
+	obj, err = cr.readJSON(filename)
 	if err != nil {
 		return err
 	}
@@ -143,13 +115,13 @@ func (a *API) publishJSON(filename string, subject string) error {
 	if err != nil {
 		return err
 	}
-	err = a.nc.Publish(a.prefix+subject, data)
+	err = cr.pub(subject, data, false)
 
 	return err
 }
 
-func (a *API) readJSON(filename string) (map[string]any, error) {
-	data, err := a.readFile(filename)
+func (cr *Collector) readJSON(filename string) (map[string]any, error) {
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -164,16 +136,7 @@ func (a *API) readJSON(filename string) (map[string]any, error) {
 	return obj, nil
 }
 
-func (a *API) readFile(filename string) ([]byte, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	return io.ReadAll(file)
-}
-
-func (a *API) scanJournal(ctx context.Context, filename string) error {
+func (cr *Collector) scanJournal(ctx context.Context, filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -206,23 +169,12 @@ func (a *API) scanJournal(ctx context.Context, filename string) error {
 					continue
 				}
 
-				err = a.nc.Publish(a.prefix+strings.ToLower("journal.event."+obj.Event), []byte(line))
+				err = cr.pub(strings.ToLower("journal.event."+obj.Event), []byte(line), false)
 				if err != nil {
 					slog.Warn("failed to publish journal entry", "line", line, "error", err)
 				}
 			}
 		}
 	}()
-	return nil
-}
-
-func (a *API) Refresh() error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	s, err := a.GetStatus()
-	if err != nil {
-		return err
-	}
-	a.Status = s
 	return nil
 }

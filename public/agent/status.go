@@ -1,4 +1,4 @@
-package fileapi
+package agent
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 // Fuel contains fuel readouts for the ship.
@@ -32,41 +31,18 @@ type Status struct {
 	Altitude  int32       `json:"Altitude,omitempty"`
 }
 
-// GetStatus reads the current player and ship status from Status.json.
-// It will read them from the default log path, which is the Saved Games
-// folder. The full path is:
-//
-//	C:/Users/<Username>/Saved Games/Frontier Developments/Elite Dangerous
-//
-// If that path is not suitable, use GetStatusFromPath.
-func (a *API) GetStatus() (*Status, error) {
-	return GetStatusFromPath(a.logPath)
-}
-
-// GetStatusFromPath reads the current player and ship status from Status.json at the specified log path.
-func GetStatusFromPath(logPath string) (*Status, error) {
+func getStatusFromPath(logPath string) (*Status, error) {
 	statusFilePath := filepath.FromSlash(logPath + "/Status.json")
-	retries := 5
-	for retries > 0 {
-		statusFile, err := os.Open(statusFilePath)
-		if err != nil {
-			retries = retries - 1
-			time.Sleep(3 * time.Millisecond)
-			continue
-		}
-		defer statusFile.Close()
-
-		statusBytes, err := io.ReadAll(statusFile)
-		if err != nil {
-			retries = retries - 1
-			time.Sleep(3 * time.Millisecond)
-			continue
-		}
-
-		return GetStatusFromBytes(statusBytes)
+	f, err := os.Open(statusFilePath)
+	if err != nil {
+		return nil, errors.New("couldn't open Status.json file: " + err.Error())
 	}
-
-	return nil, errors.New("couldn't get status after 5 attempts")
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, errors.New("couldn't read Status.json file: " + err.Error())
+	}
+	return GetStatusFromBytes(data)
 }
 
 // GetStatusFromBytes reads the current player and ship status from the string contained in the byte array.

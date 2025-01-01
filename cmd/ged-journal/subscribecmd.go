@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kmpm/ged-journal/internal/compression"
 	"github.com/nats-io/nats.go"
 )
 
@@ -36,7 +37,7 @@ func (cmd *SubFileCmd) Run(ctx *clicontext) error {
 		filename = filepath.FromSlash(cmd.Path + "/" + filename)
 		data := m.Data
 		if cmd.Deflate {
-			data, err = deflate(m.Data)
+			data, err = compression.Inflate(m.Data)
 			if err != nil {
 				slog.Error("Failed to deflate message", "error", err)
 				return

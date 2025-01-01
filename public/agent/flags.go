@@ -1,4 +1,4 @@
-package fileapi
+package agent
 
 import "github.com/kmpm/ged-journal/internal/flags"
 
