@@ -15,7 +15,7 @@ GOARCH:=$(shell go env GOARCH)
 CMDNAME=ged-journal
 BINNAME:=$(call FIXPATH,dist/$(CMDNAME)$(GOEXE))
 
-DIRS = dist var assets
+DIRS = dist var
 
 help:
 	@echo "make tidy"
@@ -66,10 +66,10 @@ $(BINNAME): $(DIRS)
 release: dist-clean $(DIRS) release_$(GOOS)
 
 release_windows: $(BINNAME)
-	zip -j assets/go-journal_win_$(GOARCH).zip  dist/*
+	zip -j go-journal_win_$(GOARCH).zip  dist/*
 
 release_linux: $(BINNAME)
-	cd dist ; tar -czf ../assets/go-journal_linux_$(GOARCH).tar.gz *
+	cd dist ; tar -czf ../go-journal_linux_$(GOARCH).tar.gz *
 
 
 .PHONY: no-dirty
@@ -82,4 +82,5 @@ dist-clean:
 
 .PHONY: clean
 clean: dist-clean
-	$(RM) assets
+	$(RM) *.tar.gz
+	$(RM) *.zip
