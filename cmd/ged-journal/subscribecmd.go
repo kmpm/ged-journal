@@ -12,10 +12,10 @@ import (
 )
 
 type SubscribeCmd struct {
-	Save SubSaveCmd `cmd:"" help:"Save journal files to disk"`
+	File SubFileCmd `cmd:"" help:"Save messages to disk"`
 }
 
-type SubSaveCmd struct {
+type SubFileCmd struct {
 	Path        string `arg:""  help:"Directory path to save journal files" type:"existingdir"`
 	Subject     string `help:"Subject to save" type:"string" default:">"`
 	Nats        string `help:"Nats server address" default:"nats://localhost:4222"`
@@ -23,7 +23,7 @@ type SubSaveCmd struct {
 	Deflate     bool   `short:"d" help:"Deflate message" default:"false"`
 }
 
-func (cmd *SubSaveCmd) Run(ctx *clicontext) error {
+func (cmd *SubFileCmd) Run(ctx *clicontext) error {
 	slog.Info("Subscribing to journal events", "subject", cmd.Subject, "path", cmd.Path)
 	nc, err := connect(cmd.Nats, cmd.NatsContext)
 	if err != nil {
