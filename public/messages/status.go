@@ -121,7 +121,7 @@ func getStatusFromPath(logPath string) (Status, error) {
 	return status, err
 }
 
-// GetStatusFromBytes reads the current player and ship status from the string contained in the byte array.
+// GetStatus reads the current player and ship status from the string contained in the byte array.
 func GetStatus(content []byte, status *Status) error {
 	if err := json.Unmarshal(content, status); err != nil {
 		return errors.New("couldn't unmarshal Status.json file: " + err.Error())
