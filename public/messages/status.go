@@ -1,6 +1,20 @@
-package agent
+package messages
 
-import "github.com/kmpm/ged-journal/internal/flags"
+import (
+	"encoding/json"
+	"errors"
+	"io"
+	"os"
+	"path/filepath"
+
+	"github.com/kmpm/ged-journal/internal/flags"
+)
+
+// Fuel contains fuel readouts for the ship.
+type Fuel struct {
+	Main      float64 `json:"FuelMain"`
+	Reservoir float64 `json:"FuelReservoir"`
+}
 
 // StatusFlags contains boolean flags describing the player and ship.
 type StatusFlags struct {
@@ -72,4 +86,46 @@ func (status *Status) ExpandFlags() {
 	status.Flags.AltitudeFromAverageRadius = status.RawFlags&flags.AltitudeFromAverageRadius != 0
 	status.Flags.FSDJump = status.RawFlags&flags.FSDJump != 0
 	status.Flags.SRVHighBeam = status.RawFlags&flags.SRVHighBeam != 0
+}
+
+// Status represents the current state of the player and ship.
+type Status struct {
+	Event
+	Flags     StatusFlags `json:"-"`
+	RawFlags  uint32      `json:"Flags"`
+	Pips      [3]int32    `json:"Pips"`
+	FireGroup int32       `json:"FireGroup"`
+	GuiFocus  int32       `json:"GuiFocus"`
+	Fuel      Fuel        `json:"Fuel"`
+	Cargo     float64     `json:"Cargo"`
+	Latitude  float64     `json:"Latitude,omitempty"`
+	Longitude float64     `json:"Longitude,omitempty"`
+	Heading   int32       `json:"Heading,omitempty"`
+	Altitude  int32       `json:"Altitude,omitempty"`
+}
+
+func getStatusFromPath(logPath string) (Status, error) {
+	status := Status{}
+	statusFilePath := filepath.FromSlash(logPath + "/Status.json")
+	f, err := os.Open(statusFilePath)
+	if err != nil {
+		return status, errors.New("couldn't open Status.json file: " + err.Error())
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return status, errors.New("couldn't read Status.json file: " + err.Error())
+	}
+
+	err = GetStatus(data, &status)
+	return status, err
+}
+
+// GetStatusFromBytes reads the current player and ship status from the string contained in the byte array.
+func GetStatus(content []byte, status *Status) error {
+	if err := json.Unmarshal(content, status); err != nil {
+		return errors.New("couldn't unmarshal Status.json file: " + err.Error())
+	}
+	status.ExpandFlags()
+	return nil
 }

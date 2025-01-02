@@ -1,4 +1,4 @@
-package agent
+package messages
 
 import (
 	"testing"
@@ -13,10 +13,10 @@ func Test_GetStatusFromPath(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *Status
+		want    Status
 		wantErr bool
 	}{
-		{"Test 1", args{"../../testdata/set1/"}, &Status{Event: "Status", Timestamp: "2024-12-29T23:22:17Z"}, false},
+		{"Test 1", args{"../../testdata/set1/"}, Status{Event: Event{Event: "Status", Timestamp: "2024-12-29T23:22:17Z"}}, false},
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {

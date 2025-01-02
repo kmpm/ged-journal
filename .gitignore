@@ -2,3 +2,5 @@
 dist/
 var/
 assets/
+*.zip
+*.tar.gz
