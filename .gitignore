@@ -1,4 +1,7 @@
+.vscode/
 .private/
 dist/
 var/
 assets/
+*.zip
+*.tar.gz

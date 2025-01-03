@@ -22,13 +22,13 @@ func (cmd *CollectCmd) Run(cc *clicontext) error {
 	}
 
 	pub := func(subject string, data []byte, compress bool) (err error) {
-		msg := nats.NewMsg("ged." + subject)
+		msg := nats.NewMsg("ged.collector." + subject)
 		if compress {
 			data, err = compression.Deflate(data)
 			if err != nil {
 				panic(err)
 			}
-			msg.Header.Set("Encoding", "zlib")
+			msg.Header.Set("Content-Encoding", "zlib")
 		}
 		msg.Data = data
 		return nc.PublishMsg(msg)

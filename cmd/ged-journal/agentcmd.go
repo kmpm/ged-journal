@@ -18,15 +18,15 @@ func (cmd *AgentCmd) Run(cc *clicontext) error {
 	if err != nil {
 		panic(err)
 	}
-	ag, err := agent.New(nc, "ged.")
+	ag, err := agent.New(nc, "ged.collector.", "ged.agent.")
 	if err != nil {
 		panic(err)
 	}
-	if !cmd.NoStatus {
-		for stat := range ag.Status() {
-			slog.Info("Received status", "status", stat)
-		}
-	}
+	// if !cmd.NoStatus {
+	// 	for stat := range ag.Status() {
+	// 		slog.Info("Received status", "status", stat)
+	// 	}
+	// }
 
 	<-waitfor()
 	slog.Info("Shutting down agent")

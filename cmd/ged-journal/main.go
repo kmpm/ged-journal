@@ -16,15 +16,16 @@ import (
 
 var globalLogLevel *slog.LevelVar
 
-type cli struct {
+type Cli struct {
 	Loglevel  string `help:"Set log level" default:"info" short:"l" enum:"debug,info,warn,error"`
 	Logfile   string `help:"Log to file" short:"f"`
 	LogSource bool   `help:"Add source to log output"`
 
 	Metrics   string       `help:"Enable prometheus metrics on address" short:"m" default:""`
-	Collect   CollectCmd   `cmd:"" default:"1" help:"Run the program"`
+	Collect   CollectCmd   `cmd:"" help:"Run the program"`
 	Ls        LsCmd        `cmd:"" help:"List files in base-path"`
 	Subscribe SubscribeCmd `cmd:"" aliases:"sub" help:"Subscribe to journal events"`
+	Agent     AgentCmd     `cmd:"" help:"Run the agent"`
 }
 
 type clicontext struct {
@@ -78,7 +79,7 @@ func setupLogging(level, logfile string, source bool) {
 }
 
 func main() {
-	var cli cli
+	var cli Cli
 	currUser, _ := user.Current()
 	homeDir := currUser.HomeDir
 	basePath := filepath.FromSlash(homeDir + "/Saved Games/Frontier Developments/Elite Dangerous")
