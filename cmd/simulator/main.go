@@ -16,7 +16,7 @@ type Cli struct {
 	Delay       time.Duration `help:"Delay between events" default:"1s"`
 	Nats        string        `help:"Nats server address" default:"nats://localhost:4222"`
 	NatsContext string        `help:"Nats context" default:""`
-	Collector   CollectorCmd  `cmd:"" help:"Simulate Collector"`
+	Collect     CollectCmd    `cmd:"" help:"Simulate ged-journal Collect"`
 }
 
 func setupLogging(level string, source bool) {

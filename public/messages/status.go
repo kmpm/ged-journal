@@ -52,44 +52,8 @@ type StatusFlags struct {
 	SRVHighBeam               bool
 }
 
-// ExpandFlags parses the RawFlags and sets the Flags values accordingly.
-func (status *Status) ExpandFlags() {
-	status.Flags.Docked = status.RawFlags&flags.Docked != 0
-	status.Flags.Landed = status.RawFlags&flags.Landed != 0
-	status.Flags.LandingGearDown = status.RawFlags&flags.LandingGearDown != 0
-	status.Flags.ShieldsUp = status.RawFlags&flags.ShieldsUp != 0
-	status.Flags.Supercruise = status.RawFlags&flags.Supercruise != 0
-	status.Flags.FlightAssistOff = status.RawFlags&flags.FlightAssistOff != 0
-	status.Flags.HardpointsDeployed = status.RawFlags&flags.HardpointsDeployed != 0
-	status.Flags.InWing = status.RawFlags&flags.InWing != 0
-	status.Flags.LightsOn = status.RawFlags&flags.LightsOn != 0
-	status.Flags.CargoScoopDeployed = status.RawFlags&flags.CargoScoopDeployed != 0
-	status.Flags.SilentRunning = status.RawFlags&flags.SilentRunning != 0
-	status.Flags.ScoopingFuel = status.RawFlags&flags.ScoopingFuel != 0
-	status.Flags.SRVHandbrake = status.RawFlags&flags.SRVHandbrake != 0
-	status.Flags.SRVTurret = status.RawFlags&flags.SRVTurret != 0
-	status.Flags.SRVUnderShip = status.RawFlags&flags.SRVUnderShip != 0
-	status.Flags.SRVDriveAssist = status.RawFlags&flags.SRVDriveAssist != 0
-	status.Flags.FSDMassLocked = status.RawFlags&flags.FSDMassLocked != 0
-	status.Flags.FSDCharging = status.RawFlags&flags.FSDCharging != 0
-	status.Flags.FSDCooldown = status.RawFlags&flags.FSDCooldown != 0
-	status.Flags.LowFuel = status.RawFlags&flags.LowFuel != 0
-	status.Flags.Overheating = status.RawFlags&flags.Overheating != 0
-	status.Flags.HasLatLong = status.RawFlags&flags.HasLatLong != 0
-	status.Flags.IsInDanger = status.RawFlags&flags.IsInDanger != 0
-	status.Flags.BeingInterdicted = status.RawFlags&flags.BeingInterdicted != 0
-	status.Flags.InMainShip = status.RawFlags&flags.InMainShip != 0
-	status.Flags.InFighter = status.RawFlags&flags.InFighter != 0
-	status.Flags.InSRV = status.RawFlags&flags.InSRV != 0
-	status.Flags.InAnalysisMode = status.RawFlags&flags.InAnalysisMode != 0
-	status.Flags.NightVision = status.RawFlags&flags.NightVision != 0
-	status.Flags.AltitudeFromAverageRadius = status.RawFlags&flags.AltitudeFromAverageRadius != 0
-	status.Flags.FSDJump = status.RawFlags&flags.FSDJump != 0
-	status.Flags.SRVHighBeam = status.RawFlags&flags.SRVHighBeam != 0
-}
-
-// Status represents the current state of the player and ship.
-type Status struct {
+// StatusEvent represents the current state of the player and ship.
+type StatusEvent struct {
 	Event
 	Flags     StatusFlags `json:"-"`
 	RawFlags  uint32      `json:"Flags"`
@@ -104,8 +68,48 @@ type Status struct {
 	Altitude  int32       `json:"Altitude,omitempty"`
 }
 
-func getStatusFromPath(logPath string) (Status, error) {
-	status := Status{}
+// ExpandFlags parses the RawFlags and sets the Flags values accordingly.
+func (status *StatusEvent) ExpandFlags() {
+	ExpandFlags(status.RawFlags, &status.Flags)
+}
+
+func ExpandFlags(raw uint32, f *StatusFlags) {
+	f.Docked = raw&flags.Docked != 0
+	f.Landed = raw&flags.Landed != 0
+	f.LandingGearDown = raw&flags.LandingGearDown != 0
+	f.ShieldsUp = raw&flags.ShieldsUp != 0
+	f.Supercruise = raw&flags.Supercruise != 0
+	f.FlightAssistOff = raw&flags.FlightAssistOff != 0
+	f.HardpointsDeployed = raw&flags.HardpointsDeployed != 0
+	f.InWing = raw&flags.InWing != 0
+	f.LightsOn = raw&flags.LightsOn != 0
+	f.CargoScoopDeployed = raw&flags.CargoScoopDeployed != 0
+	f.SilentRunning = raw&flags.SilentRunning != 0
+	f.ScoopingFuel = raw&flags.ScoopingFuel != 0
+	f.SRVHandbrake = raw&flags.SRVHandbrake != 0
+	f.SRVTurret = raw&flags.SRVTurret != 0
+	f.SRVUnderShip = raw&flags.SRVUnderShip != 0
+	f.SRVDriveAssist = raw&flags.SRVDriveAssist != 0
+	f.FSDMassLocked = raw&flags.FSDMassLocked != 0
+	f.FSDCharging = raw&flags.FSDCharging != 0
+	f.FSDCooldown = raw&flags.FSDCooldown != 0
+	f.LowFuel = raw&flags.LowFuel != 0
+	f.Overheating = raw&flags.Overheating != 0
+	f.HasLatLong = raw&flags.HasLatLong != 0
+	f.IsInDanger = raw&flags.IsInDanger != 0
+	f.BeingInterdicted = raw&flags.BeingInterdicted != 0
+	f.InMainShip = raw&flags.InMainShip != 0
+	f.InFighter = raw&flags.InFighter != 0
+	f.InSRV = raw&flags.InSRV != 0
+	f.InAnalysisMode = raw&flags.InAnalysisMode != 0
+	f.NightVision = raw&flags.NightVision != 0
+	f.AltitudeFromAverageRadius = raw&flags.AltitudeFromAverageRadius != 0
+	f.FSDJump = raw&flags.FSDJump != 0
+	f.SRVHighBeam = raw&flags.SRVHighBeam != 0
+}
+
+func getStatusFromPath(logPath string) (StatusEvent, error) {
+	status := StatusEvent{}
 	statusFilePath := filepath.FromSlash(logPath + "/Status.json")
 	f, err := os.Open(statusFilePath)
 	if err != nil {
@@ -122,7 +126,7 @@ func getStatusFromPath(logPath string) (Status, error) {
 }
 
 // GetStatus reads the current player and ship status from the string contained in the byte array.
-func GetStatus(content []byte, status *Status) error {
+func GetStatus(content []byte, status *StatusEvent) error {
 	if err := json.Unmarshal(content, status); err != nil {
 		return errors.New("couldn't unmarshal Status.json file: " + err.Error())
 	}

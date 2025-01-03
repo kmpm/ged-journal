@@ -61,6 +61,8 @@ run-collect: $(DIRS)
 run-agent: $(DIRS)
 	go run $(call FIXPATH,./cmd/ged-journal) agent -l debug -f var/agent-log.jsonl --nats $(GED_NATS)
 
+run-sim-collect:
+	go run $(call FIXPATH,./cmd/simulator) collect --delay 50ms --nats $(GED_NATS) $(SIM_FOLDER)
 
 .PHONY: build
 build: $(CMDS)
