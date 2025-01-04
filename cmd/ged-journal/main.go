@@ -61,7 +61,8 @@ func setupLogging(level, logfile string, source bool) {
 		if err != nil {
 			slog.Error("failed to open logfile", "file", logfile, "error", err)
 		}
-		w = io.MultiWriter(os.Stdout, file)
+		// w = io.MultiWriter(os.Stdout, file)
+		w = file
 	} else {
 		w = os.Stdout
 	}

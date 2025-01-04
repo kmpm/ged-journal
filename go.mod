@@ -1,6 +1,8 @@
 module github.com/kmpm/ged-journal
 
-go 1.21
+go 1.23
+
+toolchain go1.23.4
 
 require (
 	github.com/alecthomas/kong v1.6.0

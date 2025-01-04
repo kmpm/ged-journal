@@ -8,39 +8,11 @@ import (
 	"time"
 
 	"github.com/kmpm/ged-journal/internal/compression"
+	"github.com/kmpm/ged-journal/internal/state"
 	"github.com/kmpm/ged-journal/public/messages"
+
 	"github.com/nats-io/nats.go"
 )
-
-type State struct {
-	changed   bool
-	Timestamp string
-	Docked    bool
-	Game      struct {
-		Language string
-		Version  string
-		Build    string
-		Horizons bool
-		Odyssey  bool
-	}
-	Cmdr     string
-	FID      string
-	System   messages.System
-	Station  messages.Station
-	Body     messages.Body
-	GameMode string
-	Credits  int
-	Status   *messages.StatusEvent
-	Ship     struct {
-		Name string
-		ID   int
-	}
-}
-
-func (i *State) Flags() (f messages.StatusFlags) {
-	messages.ExpandFlags(i.Status.RawFlags, &f)
-	return
-}
 
 type dataSub struct {
 	Subject string
@@ -56,7 +28,7 @@ type Agent struct {
 	collectPrefix string
 	agentPrefix   string
 
-	state *State
+	state *state.State
 	tick  *time.Ticker
 }
 
@@ -69,9 +41,7 @@ func New(nc *nats.Conn, collectPrefix, agentPrefix string) (a *Agent, err error)
 		dataSubs:      make([]dataSub, 0),
 		collectPrefix: collectPrefix,
 		agentPrefix:   agentPrefix,
-		state: &State{
-			Status: &messages.StatusEvent{},
-		},
+		state:         state.New(),
 	}
 	go a.open()
 	return a, nil
@@ -86,15 +56,7 @@ func (a *Agent) open() {
 	go func() {
 		for range a.tick.C {
 			fmt.Println("--------------")
-			fmt.Println("Timestamp:", a.state.Timestamp)
-			fmt.Println("Cmdr:", a.state.Cmdr)
-			fmt.Println("FID:", a.state.FID)
-			fmt.Printf("Game: %+v\n", a.state.Game)
-			fmt.Println("Docked:", a.state.Docked)
-			fmt.Println("Flags", a.state.Status.RawFlags)
-			fmt.Printf("System: %+v\n", a.state.System)
-			fmt.Printf("Body: %+v\n", a.state.Body)
-			fmt.Printf("Station: %+v\n", a.state.Station)
+			fmt.Printf("State: %+v\n", a.state)
 			fmt.Println("")
 		}
 	}()

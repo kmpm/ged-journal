@@ -57,6 +57,7 @@ type System struct {
 	StarPos       StarPos `json:"StarPos,omitempty"`
 	StarClass     string  `json:"StarClass,omitempty"`
 }
+
 type Body struct {
 	Body     string `json:"Body"`
 	BodyID   int    `json:"BodyID"`

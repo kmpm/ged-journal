@@ -3,10 +3,11 @@ package agent
 import (
 	"sync"
 
+	"github.com/kmpm/ged-journal/internal/state"
 	"github.com/kmpm/ged-journal/public/messages"
 )
 
-type EventHandler func(e messages.Event, fields map[string]interface{}, state *State) (bool, error)
+type EventHandler func(e messages.Event, fields map[string]interface{}, s *state.State) (bool, error)
 
 type eventRegistry struct {
 	mu       sync.Mutex
