@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -10,8 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nats-io/jsm.go/natscontext"
-	"github.com/nats-io/nats.go"
+	"github.com/kmpm/ged-journal/internal/misccli"
 )
 
 func epocFromName(name string) (unix int) {
@@ -58,13 +57,44 @@ func simulator(cli *Cli, folder, prefix string) error {
 		unixJ := epocFromName(entries[j].Name())
 		return unixI < unixJ
 	})
-	nc, err := connect(cli.Nats, cli.NatsContext)
+	nc, err := misccli.ConnectNATS(cli.Nats, cli.NatsContext, cli.NatsCreds)
 	if err != nil {
 		panic(err)
 	}
+	defer func() {
+		nc.Flush()
+		nc.Close()
+	}()
+	fmt.Println("Getting ready to send messages")
+	time.Sleep(5 * time.Second)
 	var prevEpoc, thisEpoc int
 	var subject string
+	length := len(entries)
+	if length == 0 {
+		slog.Info("No files found")
+		fmt.Println("No files found")
+		return nil
+	}
+	count := 0
+	tick := time.NewTicker(2 * time.Second)
+	go func() {
+		prevCount := count
+		start := time.Now()
+		for range tick.C {
+			elapsed := time.Since(start)
+			msgsPerSec := float64(count-prevCount) / elapsed.Seconds()
+			fmt.Printf("Progress: %d/%d, Rate: %d msg/s\n", count, length, int(msgsPerSec))
+			slog.Info("Progress", "count", count, "length", length, "rate", int(msgsPerSec))
+			start = time.Now()
+			prevCount = count
+
+		}
+	}()
+	defer tick.Stop()
+
+	fmt.Println("Sending messages")
 	for _, e := range entries {
+		count++
 		if e.IsDir() {
 			continue
 		}
@@ -92,32 +122,6 @@ func simulator(cli *Cli, folder, prefix string) error {
 		// time.Sleep(cli.Delay)
 	}
 	slog.Info("All messages sent")
+	fmt.Println("All messages sent")
 	return nil
-}
-
-func connect(uri, context string) (nc *nats.Conn, err error) {
-	if context != "" {
-		nc, err = natscontext.Connect("nats_development", nil)
-	} else if uri != "" {
-		nc, err = nats.Connect(uri)
-	} else {
-		return nil, errors.New("no nats server address provided")
-	}
-	if err != nil {
-		return nil, err
-	}
-	nc.SetClosedHandler(func(_ *nats.Conn) {
-		slog.Error("nats connection closed")
-	})
-	nc.SetDisconnectHandler(func(_ *nats.Conn) {
-		slog.Error("nats connection disconnected")
-	})
-	nc.SetDisconnectErrHandler(func(_ *nats.Conn, err error) {
-		slog.Error("nats connection disconnected", "error", err)
-	})
-	nc.SetReconnectHandler(func(_ *nats.Conn) {
-		slog.Info("nats connection reconnected")
-	})
-
-	return nc, nil
 }

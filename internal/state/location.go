@@ -21,7 +21,7 @@ type Station struct {
 }
 
 type Location struct {
-	changed bool
+	Changed bool
 	System
 	Body
 	Station
@@ -52,19 +52,19 @@ func (l *Location) Update(v Location) error {
 	}
 	if l.Longitude != v.Longitude {
 		l.Longitude = v.Longitude
-		l.changed = true
+		l.Changed = true
 	}
 	if l.Latitude != v.Latitude {
 		l.Latitude = v.Latitude
-		l.changed = true
+		l.Changed = true
 	}
 	if l.Heading != v.Heading {
 		l.Heading = v.Heading
-		l.changed = true
+		l.Changed = true
 	}
 	if l.Altitude != v.Altitude {
 		l.Altitude = v.Altitude
-		l.changed = true
+		l.Changed = true
 	}
 	return nil
 }
@@ -72,21 +72,21 @@ func (l *Location) Update(v Location) error {
 func (l *Location) UpdateSystem(v System) error {
 	if l.StarSystem != v.StarSystem {
 		l.StarSystem = v.StarSystem
-		l.changed = true
+		l.Changed = true
 		// if system changes then clear the rest of the location
 		l.UpdateBody(Body{})
 	}
 	if l.SystemAddress != v.SystemAddress {
 		l.SystemAddress = v.SystemAddress
-		l.changed = true
+		l.Changed = true
 	}
 	if l.StarPos != v.StarPos {
 		l.StarPos = v.StarPos
-		l.changed = true
+		l.Changed = true
 	}
 	if l.StarClass != v.StarClass {
 		l.StarClass = v.StarClass
-		l.changed = true
+		l.Changed = true
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func (l *Location) UpdateBody(v Body) error {
 
 	if l.Body.Body != v.Body {
 		l.Body = v
-		l.changed = true
+		l.Changed = true
 		// if body changes then clear the rest of the location
 		l.UpdateStation(Station{})
 		l.Longitude = 0
@@ -119,15 +119,15 @@ func (l *Location) UpdateStation(v Station) error {
 
 	if l.Station.StationName != v.StationName {
 		l.StationName = v.StationName
-		l.changed = true
+		l.Changed = true
 	}
 	if l.Station.MarketID != v.MarketID {
 		l.Station.MarketID = v.MarketID
-		l.changed = true
+		l.Changed = true
 	}
 	if l.Station.StationType != v.StationType {
 		l.Station.StationType = v.StationType
-		l.changed = true
+		l.Changed = true
 	}
 
 	return nil

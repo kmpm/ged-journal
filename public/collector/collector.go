@@ -41,7 +41,54 @@ func New(logPath string, pub Publisher) (*Collector, error) {
 	}
 	a.w = w
 	go a.watchWorker()
+	// resend Fileheader event every 30 seconds
+	tick := time.NewTicker(30 * time.Second)
+	go a.checkCurrentJournal(tick)
 	return a, nil
+}
+
+func (cr *Collector) checkCurrentJournal(tick *time.Ticker) {
+
+	readCurrent := func() {
+		if cr.currentJournal == "" {
+			return
+		}
+		f, err := os.Open(cr.currentJournal)
+		if err != nil {
+			slog.Warn("failed to open journal file", "error", err)
+			return
+		}
+		defer f.Close()
+		reader := bufio.NewReader(f)
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			slog.Warn("failed to read journal entry", "error", err)
+			return
+		}
+		obj, err := journal.Parse([]byte(line))
+		if err != nil {
+			slog.Warn("failed to parse journal entry", "line", line, "error", err)
+			return
+		}
+
+		err = cr.pub(strings.ToLower("journal.event."+obj.Event), []byte(line), false)
+		if err != nil {
+			slog.Warn("failed to publish journal entry", "line", line, "error", err)
+		}
+
+	}
+
+	for range tick.C {
+		if cr.currentJournal != "" {
+			if _, err := os.Stat(cr.currentJournal); os.IsNotExist(err) {
+				cr.currentJournal = ""
+			}
+		} else {
+			//read first line of current journal
+			//publish to journal.event a Fileheader event
+			readCurrent()
+		}
+	}
 }
 
 func (cr *Collector) Close() error {
@@ -49,6 +96,41 @@ func (cr *Collector) Close() error {
 		cr.w.Close()
 	}
 	return nil
+}
+
+func (cr *Collector) doFile(path, name string) {
+	switch name {
+	case "Backpack.json":
+		cr.publishJSON(path, "global.backpack")
+	case "Cargo.json":
+		cr.publishJSON(path, "global.cargo")
+	case "Market.json":
+		cr.publishJSON(path, "global.market")
+	case "ModulesInfo.json":
+		cr.publishJSON(path, "global.modulesinfo")
+	case "NavRoute.json":
+		cr.publishJSON(path, "global.navroute")
+	case "Outfitting.json":
+		cr.publishJSON(path, "global.outfitting")
+	case "ShipLocker.json":
+		cr.publishJSON(path, "global.shiplocker")
+	case "Shipyard.json":
+		cr.publishJSON(path, "global.shipyard")
+	// case "Status.json":
+	// 	cr.publishJSON(path, "global.status")
+	default:
+		// TODO: sync with watchWorker
+		// if journalFilePattern.MatchString(name) {
+		// 	if cr.currentJournal != name {
+
+		// 		ctx, cancel = context.WithCancel(context.Background())
+		// 		cr.currentJournal = event.Name
+		// 		go cr.scanJournal(ctx, path)
+		// 	}
+		// } else {
+		// 	slog.Warn("unknown file", "file", event.Name)
+		// }
+	}
 }
 
 func (cr *Collector) watchWorker() {

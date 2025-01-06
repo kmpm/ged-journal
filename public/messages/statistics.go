@@ -21,7 +21,7 @@ type StatisticsEvent struct {
 		PremiumStockBought     int64 `json:"Premium_Stock_Bought"`
 	} `json:"Bank_Account"`
 	Combat struct {
-		Assasination_Profits     int64 `json:"Assasination_Profits"`
+		AssasinationProfits      int64 `json:"Assasination_Profits"`
 		Assassinations           int64 `json:"Assassinations"`
 		BountiesClaimed          int64 `json:"Bounties_Claimed"`
 		BountyHuntingProfit      int64 `json:"Bounty_Hunting_Profit"`

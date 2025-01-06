@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -33,6 +34,8 @@ type Agent struct {
 }
 
 func New(nc *nats.Conn, collectPrefix, agentPrefix string) (a *Agent, err error) {
+	//TODO: relaod state from disk
+
 	if nc == nil {
 		return nil, errors.New("no nats connection provided")
 	}
@@ -87,20 +90,71 @@ func (a *Agent) open() {
 			count++
 			//todo: check if state has changed
 		}
+		if a.state.Location.Changed {
+
+			err = a.Publish("location", &a.state.Location)
+			if err != nil {
+				slog.Error("Failed to publish location", "error", err)
+				return
+			}
+			a.state.Location.Changed = false
+		}
 		// if count == 0 {
 		// 	slog.Debug("No handlers registered for event", "event", evt.Event)
 		// }
 	})
 }
 
+type OutboundHeader struct {
+	state.Game
+	state.Player
+	Timestamp string `json:"Timestamp"`
+}
+
+type Outbound struct {
+	Header  OutboundHeader `json:"Header"`
+	Payload any            `json:"Payload"`
+}
+
+func (a *Agent) Publish(subject string, v any) error {
+	if !a.isOpen {
+		return errors.New("Agent is closed")
+	}
+	if a.state.Player.FID == "" {
+		return errors.New("player not set")
+	}
+	data, err := json.Marshal(&Outbound{
+		Header: OutboundHeader{
+			Game:      a.state.Game,
+			Player:    a.state.Player,
+			Timestamp: a.state.Timestamp,
+		},
+		Payload: v,
+	})
+	if err != nil {
+		return err
+	}
+	subject = a.agentPrefix + a.state.Player.FID + "." + subject
+	err = a.nc.Publish(subject, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (a *Agent) Close() {
-	//TODO: close all subscriptions
-	a.tick.Stop()
+	// leave if already closed
 	if !a.isOpen {
 		return
 	}
-	a.mu.Lock()
 
+	a.mu.Lock()
+	//TODO: save state to disk
+
+	// Stop the ticker
+	a.tick.Stop()
+
+	// Unsubscribe from all data subscriptions
 	for _, s := range a.dataSubs {
 		slog.Debug("Unsubscribing from message", "subject", s.Subject)
 		s.Sub.Unsubscribe()

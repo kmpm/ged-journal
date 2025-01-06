@@ -76,16 +76,16 @@ type StateEntry struct {
 }
 
 type Faction struct {
-	Name                string       `json:"Name"`
-	FactionState        string       `json:"FactionState"`
-	Government          string       `json:"Government,omitempty"`
-	Influence           float32      `json:"Influence,omitempty"`
-	Allegiance          string       `json:"Allegiance,omitempty"`
-	Happiness           string       `json:"Happiness,omitempty"`
-	Happiness_Localised string       `json:"Happiness_Localised,omitempty"`
-	MyReputation        float32      `json:"MyReputation,omitempty"`
-	PendingStates       []StateEntry `json:"PendingStates,omitempty"`
-	ActiveStates        []StateEntry `json:"ActiveStates,omitempty"`
+	Name               string       `json:"Name"`
+	FactionState       string       `json:"FactionState"`
+	Government         string       `json:"Government,omitempty"`
+	Influence          float32      `json:"Influence,omitempty"`
+	Allegiance         string       `json:"Allegiance,omitempty"`
+	Happiness          string       `json:"Happiness,omitempty"`
+	HappinessLocalised string       `json:"Happiness_Localised,omitempty"`
+	MyReputation       float32      `json:"MyReputation,omitempty"`
+	PendingStates      []StateEntry `json:"PendingStates,omitempty"`
+	ActiveStates       []StateEntry `json:"ActiveStates,omitempty"`
 }
 
 type RouteStep struct {
@@ -106,44 +106,44 @@ type ApproachBodyEvent struct {
 
 type ApproachSettlementEvent struct {
 	Event
-	Name                        string         `json:"Name"`
-	MarketID                    int            `json:"MarketID"`
-	StationFaction              Faction        `json:"StationFaction"`
-	StationGovernment           string         `json:"StationGovernment"`
-	StationGovernment_Localised string         `json:"StationGovernment_Localised"`
-	StationAllegiance           string         `json:"StationAllegiance"`
-	StationServices             []string       `json:"StationServices"`
-	StationEconomy              string         `json:"StationEconomy"`
-	StationEconomy_Localised    string         `json:"StationEconomy_Localised"`
-	StationEconomies            []EconomyEntry `json:"StationEconomies"`
-	SystemAddress               int64          `json:"SystemAddress"`
-	BodyID                      int            `json:"BodyID"`
-	BodyName                    string         `json:"BodyName"`
-	Longitude                   float32        `json:"Longitude"`
-	Latitude                    float32        `json:"Latitude"`
+	Name                       string         `json:"Name"`
+	MarketID                   int            `json:"MarketID"`
+	StationFaction             Faction        `json:"StationFaction"`
+	StationGovernment          string         `json:"StationGovernment"`
+	StationGovernmentLocalised string         `json:"StationGovernment_Localised"`
+	StationAllegiance          string         `json:"StationAllegiance"`
+	StationServices            []string       `json:"StationServices"`
+	StationEconomy             string         `json:"StationEconomy"`
+	StationEconomyLocalised    string         `json:"StationEconomy_Localised"`
+	StationEconomies           []EconomyEntry `json:"StationEconomies"`
+	SystemAddress              int64          `json:"SystemAddress"`
+	BodyID                     int            `json:"BodyID"`
+	BodyName                   string         `json:"BodyName"`
+	Longitude                  float32        `json:"Longitude"`
+	Latitude                   float32        `json:"Latitude"`
 }
 
 type FSDJumpEvent struct {
 	Event
 	System
 	Body
-	Factions                      []Faction `json:"Factions"`
-	FuelLevel                     float32   `json:"FuelLevel"`
-	FuelUsed                      float32   `json:"FuelUsed"`
-	JumpDist                      float32   `json:"JumpDist"`
-	Multicrew                     bool      `json:"Multicrew,omitempty"`
-	Population                    float32   `json:"Population,omitempty"`
-	SystemAlliance                string    `json:"SystemAllegiance,omitempty"`
-	SystemEconomy                 string    `json:"SystemEconomy,omitempty"`
-	SystemEconomy_Localised       string    `json:"SystemEconomy_Localised,omitempty"`
-	SystemFaction                 Faction   `json:"SystemFaction,omitempty"`
-	SystemGovernment              string    `json:"SystemGovernment,omitempty"`
-	SystemGovernment_Localised    string    `json:"SystemGovernment_Localised,omitempty"`
-	SystemSecondEconomy           string    `json:"SystemSecondEconomy,omitempty"`
-	SystemSecondEconomy_Localised string    `json:"SystemSecondEconomy_Localised,omitempty"`
-	SystemSecurity                string    `json:"SystemSecurity,omitempty"`
-	SystemSecurity_Localised      string    `json:"SystemSecurity_Localised,omitempty"`
-	Taxi                          bool      `json:"Taxi,omitempty"`
+	Factions                     []Faction `json:"Factions"`
+	FuelLevel                    float32   `json:"FuelLevel"`
+	FuelUsed                     float32   `json:"FuelUsed"`
+	JumpDist                     float32   `json:"JumpDist"`
+	Multicrew                    bool      `json:"Multicrew,omitempty"`
+	Population                   float32   `json:"Population,omitempty"`
+	SystemAlliance               string    `json:"SystemAllegiance,omitempty"`
+	SystemEconomy                string    `json:"SystemEconomy,omitempty"`
+	SystemEconomyLocalised       string    `json:"SystemEconomy_Localised,omitempty"`
+	SystemFaction                Faction   `json:"SystemFaction,omitempty"`
+	SystemGovernment             string    `json:"SystemGovernment,omitempty"`
+	SystemGovernmentLocalised    string    `json:"SystemGovernment_Localised,omitempty"`
+	SystemSecondEconomy          string    `json:"SystemSecondEconomy,omitempty"`
+	SystemSecondEconomyLocalised string    `json:"SystemSecondEconomy_Localised,omitempty"`
+	SystemSecurity               string    `json:"SystemSecurity,omitempty"`
+	SystemSecurityLocalised      string    `json:"SystemSecurity_Localised,omitempty"`
+	Taxi                         bool      `json:"Taxi,omitempty"`
 }
 
 type DockingDeniedEvent struct {

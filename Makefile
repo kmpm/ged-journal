@@ -56,20 +56,23 @@ test:
 
 .PHONY: run-collect
 run-collect: $(DIRS)
-	go run $(call FIXPATH,./cmd/ged-journal) collect -f var/collect-log.jsonl --nats $(GED_NATS)
+	$(RM) $(call FIXPATH,var/collect-log.jsonl)
+	go run $(call FIXPATH,./cmd/ged-journal) collect -f var/collect-log.jsonl --nats $(GED_NATS) --nats-creds="$(GED_CREDS)"
 
 run-agent: $(DIRS)
-	go run $(call FIXPATH,./cmd/ged-journal) agent -l debug -f var/agent-log.jsonl --nats $(GED_NATS)
+	$(RM) $(call FIXPATH,var/agent-log.jsonl)
+	go run $(call FIXPATH,./cmd/ged-journal) agent -l debug -f var/agent-log.jsonl --nats $(GED_NATS) --nats-creds="$(GED_CREDS)"
 
 run-sim-collect:
-	go run $(call FIXPATH,./cmd/simulator) collect --delay 5ms --nats $(GED_NATS) $(SIM_FOLDER)
+	$(RM) $(call FIXPATH,var/sim-log.jsonl)
+	go run $(call FIXPATH,./cmd/simulator) collect -f var/sim-log.jsonl --delay 5ms --nats $(GED_NATS) --nats-creds="$(GED_CREDS)" $(SIM_FOLDER)
 
 .PHONY: build
 build: $(CMDS)
 
 .PHONY: $(CMDS)
 $(CMDS): $(DIRS) 
-	go build -o $(call FIXPATH,dist/$@$(GOEXE)) $(call FIXPATH,./cmd/$@)
+	go build -o $(call FIXPATH,dist/$@-$(GOOS)-$(GOARCH)$(GOEXE)) $(call FIXPATH,./cmd/$@)
 
 .PHONY: release
 release: dist-clean $(DIRS) release_$(GOOS)
