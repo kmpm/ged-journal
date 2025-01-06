@@ -12,8 +12,11 @@ endif
 GOEXE:=$(shell go env GOEXE)
 GOOS:=$(shell go env GOOS)
 GOARCH:=$(shell go env GOARCH)
-CMDNAME=ged-journal
-BINNAME:=$(call FIXPATH,dist/$(CMDNAME)$(GOEXE))
+
+NAME:=ged-journal
+CMDS:= ged-journal simulator
+
+# BINNAME:=$(call FIXPATH,dist/$(CMDNAME)$(GOEXE))
 
 
 DIRS = dist var
@@ -53,24 +56,32 @@ test:
 
 .PHONY: run-collect
 run-collect: $(DIRS)
-	go run $(call FIXPATH,./cmd/$(CMDNAME)) collect -f var/$(CMDNAME)-log.jsonl --nats $(GED_NATS)
+	$(RM) $(call FIXPATH,var/collect-log.jsonl)
+	go run $(call FIXPATH,./cmd/ged-journal) collect -f var/collect-log.jsonl --nats $(GED_NATS) --nats-creds="$(GED_CREDS)"
 
+run-agent: $(DIRS)
+	$(RM) $(call FIXPATH,var/agent-log.jsonl)
+	go run $(call FIXPATH,./cmd/ged-journal) agent -l debug -f var/agent-log.jsonl --nats $(GED_NATS) --nats-creds="$(GED_CREDS)"
+
+run-sim-collect:
+	$(RM) $(call FIXPATH,var/sim-log.jsonl)
+	go run $(call FIXPATH,./cmd/simulator) collect -f var/sim-log.jsonl --delay 5ms --nats $(GED_NATS) --nats-creds="$(GED_CREDS)" $(SIM_FOLDER)
 
 .PHONY: build
-build: $(BINNAME)
+build: $(CMDS)
 
-.PHONY: $(BINNAME)
-$(BINNAME): $(DIRS)
-	go build -o $@ $(call FIXPATH,./cmd/$(CMDNAME))
+.PHONY: $(CMDS)
+$(CMDS): $(DIRS) 
+	go build -o $(call FIXPATH,dist/$@-$(GOOS)-$(GOARCH)$(GOEXE)) $(call FIXPATH,./cmd/$@)
 
 .PHONY: release
 release: dist-clean $(DIRS) release_$(GOOS)
 
-release_windows: $(BINNAME)
-	zip -j $(CMDNAME)_win_$(GOARCH).zip  dist/*
+release_windows: build
+	zip -j $(NAME)_win_$(GOARCH).zip  dist/*
 
-release_linux: $(BINNAME)
-	cd dist ; tar -czf ../$(CMDNAME)_linux_$(GOARCH).tar.gz *
+release_linux: build
+	cd dist ; tar -czf ../$(NAME)_linux_$(GOARCH).tar.gz *
 
 
 .PHONY: no-dirty

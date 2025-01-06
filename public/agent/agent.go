@@ -1,133 +1,197 @@
 package agent
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/kmpm/ged-journal/internal/compression"
+	"github.com/kmpm/ged-journal/internal/state"
+	"github.com/kmpm/ged-journal/public/messages"
+
 	"github.com/nats-io/nats.go"
 )
 
-type statusSub struct {
-	Chan chan *Status
-	Sub  *nats.Subscription
-}
-
 type dataSub struct {
-	Chan chan []byte
-	Sub  *nats.Subscription
+	Subject string
+	Sub     *nats.Subscription
 }
 
 type Agent struct {
-	open           bool
-	nc             *nats.Conn
-	statusSubs     []statusSub
-	dataSubs       []dataSub
-	mu             sync.Mutex
-	currentStatus  *Status
-	prefix         string
-	currentSystem  string
-	currentStation string
+	isOpen   bool
+	nc       *nats.Conn
+	dataSubs []dataSub
+	mu       sync.Mutex
+
+	collectPrefix string
+	agentPrefix   string
+
+	state *state.State
+	tick  *time.Ticker
 }
 
-func New(nc *nats.Conn, prefix string) (a *Agent, err error) {
+func New(nc *nats.Conn, collectPrefix, agentPrefix string) (a *Agent, err error) {
+	//TODO: relaod state from disk
+
 	if nc == nil {
 		return nil, errors.New("no nats connection provided")
 	}
 	a = &Agent{
-		nc:         nc,
-		statusSubs: make([]statusSub, 0),
-		dataSubs:   make([]dataSub, 0),
-		open:       true,
+		nc:            nc,
+		dataSubs:      make([]dataSub, 0),
+		collectPrefix: collectPrefix,
+		agentPrefix:   agentPrefix,
+		state:         state.New(),
 	}
+	go a.open()
 	return a, nil
 }
 
-func (a *Agent) Close() {
-	//TODO: close all subscriptions
-	if !a.open {
-		return
-	}
+func (a *Agent) open() {
 	a.mu.Lock()
-	for _, s := range a.statusSubs {
-		s.Sub.Unsubscribe()
-		close(s.Chan)
-	}
-	a.statusSubs = nil
-	for _, s := range a.dataSubs {
-		s.Sub.Unsubscribe()
-		close(s.Chan)
-	}
-	a.dataSubs = nil
-	a.open = false
+	a.isOpen = true
 	a.mu.Unlock()
-}
 
-func (a *Agent) Status() chan *Status {
-	if !a.open {
-		panic("Agent is closed")
-	}
-	ch := make(chan *Status)
-	s, err := a.nc.Subscribe(a.prefix+"status", func(msg *nats.Msg) {
-		var (
-			stat *Status
-			err  error
-			data []byte
-		)
-		if msg.Header.Get("Encoding") == "zlib" {
-			data, err = compression.Inflate(msg.Data)
-			if err != nil {
-				slog.Error("Failed to decompress message", "error", err)
-				return
-			}
-		} else {
-			data = msg.Data
+	a.tick = time.NewTicker(2 * time.Second)
+	go func() {
+		for range a.tick.C {
+			fmt.Println("--------------")
+			fmt.Printf("State: %+v\n", a.state)
+			fmt.Println("")
 		}
+	}()
 
-		stat, err = GetStatusFromBytes(data)
+	slog.Info("Checking for status messages")
+
+	a.Message(">", func(data []byte) {
+		// slog.Info("Received event", "data", string(data))
+		evt := messages.Event{}
+		fields, err := messages.GetEventComponent(data, &evt)
 		if err != nil {
-			slog.Error("Failed to decode message", "error", err)
+			slog.Error("Failed to decode event message", "error", err)
 			return
 		}
+
+		// loop through all the eventhandlers in registry
+		registry.mu.Lock()
+		defer registry.mu.Unlock()
 		a.mu.Lock()
-		a.currentStatus = stat
-		a.mu.Unlock()
-		ch <- stat
+		defer a.mu.Unlock()
+		count := 0
+		for _, handler := range registry.handlers[evt.Event] {
+			_, err := handler(evt, fields, a.state)
+			if err != nil {
+				slog.Error("Failed to handle event", "event", evt.Event, "error", err)
+			}
+			a.state.Timestamp = evt.Timestamp
+			count++
+			//todo: check if state has changed
+		}
+		if a.state.Location.Changed {
+
+			err = a.Publish("location", &a.state.Location)
+			if err != nil {
+				slog.Error("Failed to publish location", "error", err)
+				return
+			}
+			a.state.Location.Changed = false
+		}
+		// if count == 0 {
+		// 	slog.Debug("No handlers registered for event", "event", evt.Event)
+		// }
+	})
+}
+
+type OutboundHeader struct {
+	state.Game
+	state.Player
+	Timestamp string `json:"Timestamp"`
+}
+
+type Outbound struct {
+	Header  OutboundHeader `json:"Header"`
+	Payload any            `json:"Payload"`
+}
+
+func (a *Agent) Publish(subject string, v any) error {
+	if !a.isOpen {
+		return errors.New("Agent is closed")
+	}
+	if a.state.Player.FID == "" {
+		return errors.New("player not set")
+	}
+	data, err := json.Marshal(&Outbound{
+		Header: OutboundHeader{
+			Game:      a.state.Game,
+			Player:    a.state.Player,
+			Timestamp: a.state.Timestamp,
+		},
+		Payload: v,
 	})
 	if err != nil {
-		close(ch)
+		return err
 	}
-	a.mu.Lock()
-	a.statusSubs = append(a.statusSubs, statusSub{Chan: ch, Sub: s})
-	a.mu.Unlock()
-	return ch
-}
-
-func (a *Agent) Message(subject string) chan []byte {
-	if !a.open {
-		panic("Agent is closed")
-	}
-	// TODO: check valid name
-	ch := make(chan []byte)
-	s, err := a.nc.Subscribe(a.prefix+subject, onMessageHandler(ch))
+	subject = a.agentPrefix + a.state.Player.FID + "." + subject
+	err = a.nc.Publish(subject, data)
 	if err != nil {
-		close(ch)
+		return err
 	}
-	a.mu.Lock()
-	a.dataSubs = append(a.dataSubs, dataSub{Chan: ch, Sub: s})
-	a.mu.Unlock()
-	return ch
-
+	return nil
 }
 
-func onMessageHandler(ch chan []byte) func(msg *nats.Msg) {
+func (a *Agent) Close() {
+	// leave if already closed
+	if !a.isOpen {
+		return
+	}
+
+	a.mu.Lock()
+	//TODO: save state to disk
+
+	// Stop the ticker
+	a.tick.Stop()
+
+	// Unsubscribe from all data subscriptions
+	for _, s := range a.dataSubs {
+		slog.Debug("Unsubscribing from message", "subject", s.Subject)
+		s.Sub.Unsubscribe()
+	}
+	a.dataSubs = nil
+	a.isOpen = false
+	a.mu.Unlock()
+	slog.Info("Agent closed", "state", a.state)
+}
+
+type MessageHandler func([]byte)
+
+func (a *Agent) Message(subject string, cb MessageHandler) error {
+	if !a.isOpen {
+		return errors.New("Agent is closed")
+	}
+	// TODO: check valid subjects
+	subject = a.collectPrefix + subject
+	slog.Debug("Subscribing to message", "subject", subject)
+	s, err := a.nc.Subscribe(subject, onMessageHandler(cb))
+	if err != nil {
+		slog.Info("Failed to subscribe to message", "subject", subject, "error", err)
+		return err
+	}
+	a.mu.Lock()
+	a.dataSubs = append(a.dataSubs, dataSub{Subject: subject, Sub: s})
+	a.mu.Unlock()
+	return nil
+}
+
+func onMessageHandler(cb MessageHandler) func(msg *nats.Msg) {
 	return func(msg *nats.Msg) {
 		var (
 			data []byte
 			err  error
 		)
-		if msg.Header.Get("Encoding") == "zlib" {
+		if msg.Header.Get("Content-Encoding") == "zlib" {
 			data, err = compression.Inflate(msg.Data)
 			if err != nil {
 				slog.Error("Failed to decompress message", "error", err)
@@ -136,6 +200,6 @@ func onMessageHandler(ch chan []byte) func(msg *nats.Msg) {
 		} else {
 			data = msg.Data
 		}
-		ch <- data
+		cb(data)
 	}
 }
