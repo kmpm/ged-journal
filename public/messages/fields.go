@@ -9,7 +9,7 @@ var EventFields map[string][]string = map[string][]string{
 	"DockingGranted":       {"LandingPad", "StationName", "StationType", "MarketID"},
 	"DockingRequested":     {"StationName", "StationType", "MarketID", "LandingPads"},
 	"EscapeInterdiction":   {"Interdictor", "IsPlayer"},
-	"Fileheader":           {"part", "language", "gamebersion", "build"},
+	"Fileheader":           {"part", "language", "gameversion", "build"},
 	"FSDTarget":            {"Name", "SystemAddress", "StarClass", "RemainingJumpsInRoute"},
 	"FSSDiscoveryScan":     {"Progress", "BodyCount", "NonBodyCount", "SystemAddress", "SystemName"},
 	"FSSSignalDiscovered":  {"SystemAddress", "SignalName", "SignalType"},
