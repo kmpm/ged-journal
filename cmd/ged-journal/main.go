@@ -7,10 +7,10 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
-	"path/filepath"
 	"syscall"
 
 	"github.com/alecthomas/kong"
+	"github.com/kmpm/ged-journal/public/ed"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -25,15 +25,16 @@ type cli struct {
 	LogSource bool   `help:"Add source to log output"`
 
 	Metrics   string       `help:"Enable prometheus metrics on address" short:"m" default:""`
-	Collect   CollectCmd   `cmd:"" default:"1" help:"Run the program"`
+	Collect   CollectCmd   `cmd:"" help:"Collect journal events"`
 	Ls        LsCmd        `cmd:"" help:"List files in base-path"`
 	Subscribe SubscribeCmd `cmd:"" aliases:"sub" help:"Subscribe to journal events"`
 }
 
 type clicontext struct {
-	Username string
-	HomePath string
-	Metrics  bool
+	Username       string
+	HomePath       string
+	SavedGamesPath string
+	Metrics        bool
 }
 
 // configure slog logging
@@ -84,11 +85,15 @@ func main() {
 	var cli cli
 	currUser, _ := user.Current()
 	homeDir := currUser.HomeDir
-	basePath := filepath.FromSlash(homeDir + "/Saved Games/Frontier Developments/Elite Dangerous")
-
+	basePath, err := ed.AppPath(ed.SavedGamesPath)
+	if err != nil {
+		slog.Error("failed to get app path", "error", err)
+		os.Exit(1)
+	}
 	cc := clicontext{
-		Username: currUser.Username,
-		HomePath: homeDir,
+		Username:       currUser.Username,
+		HomePath:       homeDir,
+		SavedGamesPath: basePath,
 	}
 
 	ctx := kong.Parse(&cli, kong.Vars{"basepath": basePath})
@@ -105,12 +110,12 @@ func main() {
 		}()
 		cc.Metrics = true
 	} else {
-		slog.Info("metrics disabled")
+		slog.Debug("metrics disabled")
 	}
 
-	slog.Info("Starting ged-journal", "user", cc.Username, "loglevel", cli.Loglevel, "logfile", cli.Logfile, "metrics", cli.Metrics)
+	slog.Debug("Starting ged-journal", "user", cc.Username, "loglevel", cli.Loglevel, "logfile", cli.Logfile, "metrics", cli.Metrics)
 
-	err := ctx.Run(&cc)
+	err = ctx.Run(&cc)
 	ctx.FatalIfErrorf(err)
 }
 

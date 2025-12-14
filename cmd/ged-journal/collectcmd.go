@@ -9,14 +9,13 @@ import (
 )
 
 type CollectCmd struct {
-	BasePath    string `arg:"" help:"Path to application log files" default:"${basepath}"`
-	Nats        string `help:"Nats server address" default:"nats://localhost:4222"`
-	NatsContext string `help:"Nats context" default:""`
+	BasePath string `arg:"" help:"Path to application log files" default:"${basepath}"`
+	Nats     Nats   `help:"Nats server address" embed:"" prefix:"nats."`
 }
 
 func (cmd *CollectCmd) Run(cc *clicontext) error {
 	slog.Info("Running Collect")
-	nc, err := connect(cmd.Nats, cmd.NatsContext)
+	nc, err := connect(&cmd.Nats)
 	if err != nil {
 		return err
 	}

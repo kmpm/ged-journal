@@ -17,16 +17,15 @@ type SubscribeCmd struct {
 }
 
 type SubFileCmd struct {
-	Path        string `arg:""  help:"Directory path to save journal files" type:"existingdir"`
-	Subject     string `help:"Subject to save" type:"string" default:">"`
-	Nats        string `help:"Nats server address" default:"nats://localhost:4222"`
-	NatsContext string `help:"Nats context" default:""`
-	Deflate     bool   `short:"d" help:"Deflate message" default:"false"`
+	Path    string `arg:""  help:"Directory path to save journal files" type:"existingdir"`
+	Subject string `help:"Subject to save" type:"string" default:">"`
+	Nats    Nats   `help:"Nats Configuration" prefix:"nats." embed:""`
+	Deflate bool   `short:"d" help:"Deflate message" default:"false"`
 }
 
 func (cmd *SubFileCmd) Run(ctx *clicontext) error {
 	slog.Info("Subscribing to journal events", "subject", cmd.Subject, "path", cmd.Path)
-	nc, err := connect(cmd.Nats, cmd.NatsContext)
+	nc, err := connect(&cmd.Nats)
 	if err != nil {
 		return err
 	}

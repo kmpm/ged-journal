@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -27,8 +29,32 @@ type Collector struct {
 	prefix         string
 }
 
-func New(logPath string, pub Publisher) (*Collector, error) {
+func assertFiles(path string) error {
+	files := []string{"Cargo.json", "ShipLocker.json", "Status.json", "Journal*.log"}
+	for _, file := range files {
+		if !strings.Contains(file, "*") {
+			if _, err := os.Stat(path + "/" + file); err != nil {
+				return err
+			}
+		} else {
+			//process glob
+			glob := path + "/" + file
+			matches, err := filepath.Glob(glob)
+			if err != nil {
+				return err
+			}
+			if len(matches) == 0 {
+				return fmt.Errorf("no files matching %s", glob)
+			}
+		}
+	}
+	return nil
+}
 
+func New(logPath string, pub Publisher) (*Collector, error) {
+	if err := assertFiles(logPath); err != nil {
+		return nil, err
+	}
 	a := &Collector{
 		logPath: logPath,
 		pub:     pub,

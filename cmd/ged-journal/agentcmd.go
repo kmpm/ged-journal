@@ -7,14 +7,14 @@ import (
 )
 
 type AgentCmd struct {
-	Nats        string `help:"Nats server address" default:"nats://localhost:4222"`
-	NatsContext string `help:"Nats context" default:""`
-	NoStatus    bool   `help:"Do handle status messages" default:"false"`
+	Nats Nats `help:"Nats server address" embed:"" prefix:"nats."`
+
+	NoStatus bool `help:"Do handle status messages" default:"false"`
 }
 
 func (cmd *AgentCmd) Run(cc *clicontext) error {
 	slog.Info("Running Agent")
-	nc, err := connect(cmd.Nats, cmd.NatsContext)
+	nc, err := connect(&cmd.Nats)
 	if err != nil {
 		panic(err)
 	}

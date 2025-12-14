@@ -1,20 +1,23 @@
 package main
 
 import (
-	"errors"
 	"log/slog"
 
 	"github.com/nats-io/jsm.go/natscontext"
 	"github.com/nats-io/nats.go"
 )
 
-func connect(uri, context string) (nc *nats.Conn, err error) {
-	if context != "" {
-		nc, err = natscontext.Connect("nats_development", nil)
-	} else if uri != "" {
-		nc, err = nats.Connect(uri)
+type Nats struct {
+	Context string `help:"Nats context name. Leave blank for default"`
+	Server  string `help:"Nats server address"`
+}
+
+func connect(cfg *Nats) (nc *nats.Conn, err error) {
+
+	if cfg.Server != "" {
+		nc, err = nats.Connect(cfg.Server)
 	} else {
-		return nil, errors.New("no nats server address provided")
+		nc, err = natscontext.Connect(cfg.Context, nil)
 	}
 	if err != nil {
 		return nil, err
