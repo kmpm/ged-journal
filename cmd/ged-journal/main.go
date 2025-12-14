@@ -15,6 +15,9 @@ import (
 )
 
 var globalLogLevel *slog.LevelVar
+var gitCommit string
+var gitVersion string
+var gitDate string
 
 type cli struct {
 	Loglevel  string `help:"Set log level" default:"info" short:"l" enum:"debug,info,warn,error"`

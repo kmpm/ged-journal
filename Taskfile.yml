@@ -1,0 +1,58 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  PROJECT_NAME: ged-journal
+  DISTDIR: dist
+  GIT_COMMIT: $(git rev-parse HEAD)
+  GIT_VERSION: $(git describe --tags --always)
+  GIT_DATE: $(git log -1 --format=%ci)
+  GOOS: $(go env GOOS)
+  GOARCH: $(go env GOARCH)
+  LDFLAGS: "-s -w -X 'main.gitVersion={{.GIT_VERSION}}' -X 'main.gitCommit={{.GIT_COMMIT}}' -X 'main.gitDate={{.GIT_DATE}}'"
+
+tasks:
+  info:
+    desc: Display project information
+    silent: true
+    cmds:
+      - 'echo "Git Commit: {{.GIT_COMMIT}}"'
+      - 'echo "Git Version: {{.GIT_VERSION}}"'
+      - 'echo "Git Date: {{.GIT_DATE}}"'
+
+  tidy:
+    cmds:
+      - go fmt ./...
+      - go mod tidy -v
+
+  audit:
+    desc: Audit the project code
+    cmds:
+      - echo "running checks"
+      - go mod verify
+      - go vet ./...
+      - go list -m all
+      - go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./...
+      - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v ./...
+
+  build:
+    desc: Build the project
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o {{.DISTDIR}}/{{.GOOS}}_{{.GOARCH}}/ ./cmd/...
+
+  clean:
+    desc: Clean up build artifacts
+    cmds:
+      - rm -rf {{.DISTDIR}}/
+
+  release:
+    desc: Build and package the project for release
+    deps: [build]
+    cmds:
+      - tar -czvf {{.PROJECT_NAME}}_{{.GOOS}}_{{.GOARCH}}.tar.gz -C {{.DISTDIR}}/{{.GOOS}}_{{.GOARCH}} .
