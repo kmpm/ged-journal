@@ -28,7 +28,11 @@ func TestSteamAppPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ed.SteamAppPath(tt.pathID)
+			got, err := ed.SteamAppPath(tt.pathID)
+			if err != nil {
+				t.Errorf("SteamAppPath() error: %v", err)
+				return
+			}
 			if !strings.Contains(got, tt.contains) {
 				t.Errorf("SteamAppPath() = %v, want %v", got, tt.contains)
 			}

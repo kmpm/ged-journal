@@ -1,7 +1,7 @@
 # Go Elite Dangerous Journal Parser
 
 
-
+https://github.com/EDCD/EDDN/blob/live/README.md#using-eddn
 
 ## Usage
 ### Windows

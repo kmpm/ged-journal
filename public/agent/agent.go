@@ -1,3 +1,5 @@
+// agent package tries to keep current state of the game from a specific collector
+// based upon subject base.
 package agent
 
 import (

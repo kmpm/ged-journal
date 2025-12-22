@@ -59,10 +59,10 @@ tasks:
     cmds:
       - tar -czvf {{.PROJECT_NAME}}_{{.GOOS}}_{{.GOARCH}}.tar.gz -C {{.DISTDIR}}/{{.GOOS}}_{{.GOARCH}} .
 
-  run/collect:
-    desc: Run the collection process
-    cmds:
-      - go run -ldflags "{{.LDFLAGS}}"  ./cmd/ged-journal collect -f var/{{.PROJECT_NAME}}-log.jsonl --nats $GED_NATS
+  # run:collect:
+  #   desc: Run the collection process
+  #   cmds:
+  #     - go run -ldflags "{{.LDFLAGS}}"  ./cmd/ged-journal collect -f var/{{.PROJECT_NAME}}-log.jsonl
 
   run:
     desc: Run the server process

@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kmpm/ged-journal/internal/compression"
+	"github.com/kmpm/ged-journal/internal/metrics"
+	"github.com/kmpm/ged-journal/public/abus"
 	"github.com/nats-io/nats.go"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type SubscribeCmd struct {
@@ -17,39 +19,43 @@ type SubscribeCmd struct {
 }
 
 type SubFileCmd struct {
-	Path    string `arg:""  help:"Directory path to save journal files" type:"existingdir"`
-	Subject string `help:"Subject to save" type:"string" default:">"`
-	Nats    Nats   `help:"Nats Configuration" prefix:"nats." embed:""`
-	Deflate bool   `short:"d" help:"Deflate message" default:"false"`
+	Path    string      `arg:""  help:"Directory path to save journal files" type:"existingdir"`
+	Subject string      `help:"Subject to save" short:"s" type:"string" required:"true"`
+	Nats    abus.Config `help:"Nats Configuration" prefix:"nats." embed:"" envprefix:"NATS_"`
+	Inflate bool        `short:"i" help:"Force inflation of message using zlib" default:"false"`
 }
 
 func (cmd *SubFileCmd) Run(ctx *clicontext) error {
 	slog.Info("Subscribing to journal events", "subject", cmd.Subject, "path", cmd.Path)
-	nc, err := connect(&cmd.Nats)
+
+	a, err := abus.Connect(cmd.Nats)
 	if err != nil {
 		return err
 	}
-	nc.Subscribe(cmd.Subject, func(m *nats.Msg) {
-		epoc := time.Now().Unix()
-		slog.Debug("Received message", "subject", m.Subject, "epoc", epoc)
-		filename := fmt.Sprintf("%s_%d.json", strings.ReplaceAll(m.Subject, ".", "-"), epoc)
-		filename = filepath.FromSlash(cmd.Path + "/" + filename)
-		data := m.Data
-		if cmd.Deflate {
-			data, err = compression.Inflate(m.Data)
-			if err != nil {
-				slog.Error("Failed to deflate message", "error", err)
-				return
-			}
-		}
-		err := os.WriteFile(filename, data, 0644)
-		if err != nil {
-			slog.Error("Failed to write file", "file", filename, "error", err)
-		}
-	})
+	a.Subscribe(cmd.Subject, cmd.Inflate, saveAsFileMiddleware(cmd.Path))
 	slog.Info("Waiting for messages")
 	<-waitfor()
 	slog.Info("Closing connection")
-	nc.Close()
+	a.Close()
 	return nil
+}
+
+func saveAsFileMiddleware(path string) func(*nats.Msg) {
+	metSaved := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "ged_messages_saved",
+		Help: "Number of messages saved to file",
+	}, []string{"subject"})
+	metrics.Registry.MustRegister(metSaved)
+
+	return func(msg *nats.Msg) {
+		epoc := time.Now().Unix()
+		filename := fmt.Sprintf("%s_%d.json", strings.ReplaceAll(msg.Subject, ".", "-"), epoc)
+		filename = filepath.FromSlash(path + "/" + filename)
+		slog.Debug("Received message", "subject", msg.Subject, "epoc", epoc, "filename", filename)
+		err := os.WriteFile(filename, msg.Data, 0644)
+		if err != nil {
+			slog.Error("Failed to write file", "file", filename, "error", err)
+		}
+		metSaved.WithLabelValues(msg.Subject).Inc()
+	}
 }

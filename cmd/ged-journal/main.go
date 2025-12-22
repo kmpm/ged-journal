@@ -10,8 +10,8 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kong"
+	"github.com/kmpm/ged-journal/internal/metrics"
 	"github.com/kmpm/ged-journal/public/ed"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var globalLogLevel *slog.LevelVar
@@ -20,14 +20,15 @@ var gitVersion string
 var gitDate string
 
 type cli struct {
-	Loglevel  string `help:"Set log level" default:"info" short:"l" enum:"debug,info,warn,error"`
-	Logfile   string `help:"Log to file" short:"f"`
+	Loglevel  string `help:"Set log level" default:"info" short:"l" enum:"debug,info,warn,error" env:"LOG_LEVEL"`
+	Logfile   string `help:"Log to file" short:"f" env:"LOG_FILE"`
 	LogSource bool   `help:"Add source to log output"`
+	Metrics   string `help:"Enable prometheus metrics on address" short:"m" default:"" env:"METRICS"`
 
-	Metrics   string       `help:"Enable prometheus metrics on address" short:"m" default:""`
-	Collect   CollectCmd   `cmd:"" help:"Collect journal events"`
 	Ls        LsCmd        `cmd:"" help:"List files in base-path"`
+	Collect   CollectCmd   `cmd:"" help:"Collect journal events"`
 	Subscribe SubscribeCmd `cmd:"" aliases:"sub" help:"Subscribe to journal events"`
+	Agent     AgentCmd     `cmd:"" help:"Run the agent"`
 }
 
 type clicontext struct {
@@ -102,7 +103,7 @@ func main() {
 	if cli.Metrics != "" {
 		go func() {
 			slog.Info("metrics enabled", "address", cli.Metrics)
-			http.Handle("/metrics", promhttp.Handler())
+			http.Handle("/metrics", metrics.NewHTTPHandler())
 			err := http.ListenAndServe(cli.Metrics, nil)
 			if err != nil {
 				slog.Error("metrics server error", "error", err)
