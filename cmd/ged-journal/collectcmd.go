@@ -25,7 +25,9 @@ func (cmd *CollectCmd) Run(cc *clicontext) error {
 		}
 	}()
 
-	col, err := collector.New(cmd.BasePath, a.Publish)
+	col, err := collector.New(cmd.BasePath, func(subject string, data []byte, reply bool) error {
+		return nb.Publish(cmd.SubjectPrefix+subject, data, reply)
+	})
 	if err != nil {
 		return err
 	}
