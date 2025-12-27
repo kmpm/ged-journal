@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"codeberg.org/kmpm/ged-common/pkg/nbus"
 	"github.com/kmpm/ged-journal/internal/metrics"
-	"github.com/kmpm/ged-journal/public/abus"
 	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -20,23 +20,23 @@ type SubscribeCmd struct {
 
 type SubFileCmd struct {
 	Path    string      `arg:""  help:"Directory path to save journal files" type:"existingdir"`
-	Subject string      `help:"Subject to save" short:"s" type:"string" required:"true"`
-	Nats    abus.Config `help:"Nats Configuration" prefix:"nats." embed:"" envprefix:"NATS_"`
+	Subject string      `help:"Subject to save" short:"s" type:"string" default:"ged-journal.>"`
+	Nats    nbus.Config `help:"Nats Configuration" prefix:"nats." embed:"" envprefix:"NATS_"`
 	Inflate bool        `short:"i" help:"Force inflation of message using zlib" default:"false"`
 }
 
 func (cmd *SubFileCmd) Run(ctx *clicontext) error {
 	slog.Info("Subscribing to journal events", "subject", cmd.Subject, "path", cmd.Path)
 
-	a, err := abus.Connect(cmd.Nats)
+	nb, err := nbus.Connect(cmd.Nats)
 	if err != nil {
 		return err
 	}
-	a.Subscribe(cmd.Subject, cmd.Inflate, saveAsFileMiddleware(cmd.Path))
+	nb.Subscribe(cmd.Subject, cmd.Inflate, saveAsFileMiddleware(cmd.Path))
 	slog.Info("Waiting for messages")
 	<-waitfor()
 	slog.Info("Closing connection")
-	a.Close()
+	nb.Close()
 	return nil
 }
 

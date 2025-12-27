@@ -3,22 +3,23 @@ package main
 import (
 	"log/slog"
 
-	"github.com/kmpm/ged-journal/public/abus"
+	"codeberg.org/kmpm/ged-common/pkg/nbus"
+
 	"github.com/kmpm/ged-journal/public/agent"
 )
 
 type AgentCmd struct {
-	Nats     abus.Config `help:"Nats server address" embed:"" prefix:"nats." envprefix:"NATS_"`
+	Nats     nbus.Config `help:"Nats server address" embed:"" prefix:"nats." envprefix:"NATS_"`
 	NoStatus bool        `help:"Do handle status messages" default:"false"`
 }
 
 func (cmd *AgentCmd) Run(cc *clicontext) error {
 	slog.Info("Running Agent")
-	a, err := abus.Connect(cmd.Nats)
+	nb, err := nbus.Connect(cmd.Nats)
 	if err != nil {
 		panic(err)
 	}
-	ag, err := agent.New(a.Conn(), "ged.")
+	ag, err := agent.New(nb.Conn(), "ged.")
 	if err != nil {
 		panic(err)
 	}
