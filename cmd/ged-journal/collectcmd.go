@@ -3,24 +3,25 @@ package main
 import (
 	"log/slog"
 
-	"github.com/kmpm/ged-journal/public/abus"
+	"codeberg.org/kmpm/ged-common/pkg/nbus"
 	"github.com/kmpm/ged-journal/public/collector"
 )
 
 type CollectCmd struct {
-	BasePath string      `arg:"" help:"Path to application log files" default:"${basepath}"`
-	Nats     abus.Config `embed:"" prefix:"nats." envprefix:"NATS_"`
+	BasePath      string      `arg:"" help:"Path to application log files" default:"${basepath}"`
+	Nats          nbus.Config `embed:"" prefix:"nats." envprefix:"NATS_"`
+	SubjectPrefix string      `help:"Prefix for journal event subjects" default:"ged-journal."`
 }
 
 func (cmd *CollectCmd) Run(cc *clicontext) error {
 	slog.Info("Running Collect")
-	a, err := abus.Connect(cmd.Nats)
+	nb, err := nbus.Connect(cmd.Nats)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := a.Close(); err != nil {
-			slog.Error("Failed to close ABus", "error", err)
+		if err := nb.Close(); err != nil {
+			slog.Error("Failed to close NBus", "error", err)
 		}
 	}()
 
