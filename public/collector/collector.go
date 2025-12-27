@@ -194,7 +194,8 @@ func (cr *Collector) scanJournal(ctx context.Context, filename string) error {
 					slog.Warn("failed to parse journal entry", "line", line, "error", err)
 					continue
 				}
-
+				// publish journal event using the collector's publisher.
+				// Subject is the event type, data is the journal entry.
 				err = cr.pub(strings.ToLower("journal.event."+obj.Event), []byte(line), false)
 				if err != nil {
 					slog.Warn("failed to publish journal entry", "line", line, "error", err)
